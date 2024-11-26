@@ -10,7 +10,126 @@ import (
 )
 
 type ClaudeAPI interface {
+
+	// ClaudeSendMessage sends a message to the Claude API and returns the response.
+	//
+	// This function constructs and sends a request to Claude, either using a custom request body or
+	// building a default request body from the provided content and configuration.
+	// It handles the response, including error handling, and returns the parsed response.
+	//
+	// Parameters:
+	//   - content: A pointer to a slice of `ClaudeMessageReq` containing the messages to be sent to Claude.
+	//     Each message includes a `role` (e.g., "user", "system") and `content` which can be text or vision data.
+	//   - maxToken: An integer specifying the maximum number of tokens (words) allowed in the response (you can set to 0 if using custom_reqbody because the token itself you will provide inside the custom reqbody).
+	//   - with_custom_reqbody: A boolean flag indicating whether a custom request body should be used.
+	//   - req_body_custom: A pointer to `ClaudeReqBody`, which is used if `with_custom_reqbody` is true.
+	//     If this value is nil when `with_custom_reqbody` is true, an error is returned.
+	//
+	// Returns:
+	//   - A pointer to `ClaudeResp`, which contains the ID, content, model, and usage statistics of the response.
+	//   - An error if the request fails at any stage.
+	//
+	// Example usage:
+	//
+	//	// Define message content
+	//	messages := []ClaudeMessageReq{
+	//	    {Role: "user", Content: "What is the weather today?"},
+	//	}
+	//
+	//	// Send request with default body
+	//	response, err := claudeAPI.ClaudeSendMessage(&messages, 100, false, nil)
+	//	if err != nil {
+	//	    log.Fatalf("Failed to send message to Claude: %v", err)
+	//	}
+	//	fmt.Println("Claude response:", response)
+	//
+	//	// Send request with custom body
+	//	customReqBody := ClaudeReqBody{
+	//	    Model:     "claude-v1",
+	//	    MaxTokens: 150,
+	//	    Message:   messages,
+	//	}
+	//	response, err := claudeAPI.ClaudeSendMessage(nil, 0, true, &customReqBody)
+	//	if err != nil {
+	//	    log.Fatalf("Failed to send message to Claude with custom body: %v", err)
+	//	}
+	//	fmt.Println("Claude custom response:", response)
+	//
+	// Function Details:
+	//
+	//  1. API Key Validation: The function checks if the `apiKey` is empty, and returns an error if it is missing.
+	//  2. Custom Request Body: If `with_custom_reqbody` is true, the custom request body (`req_body_custom`) is used.
+	//     If it's nil, an error is returned.
+	//  3. Default Request Body: If `with_custom_reqbody` is false, the function creates a default `ClaudeReqBody` with
+	//     the specified model, max tokens, messages, and a temperature of 1.0.
+	//  4. Request Construction: The request is sent as a JSON payload to Claude's API endpoint using an HTTP POST method.
+	//  5. Headers: The request includes the necessary headers, such as the API key, version, and content type.
+	//  6. Response Handling: If the response status code is not 200 (OK), the function decodes the error response from Claude
+	//     and returns a detailed error message. The successful response is decoded into a `ClaudeResp` struct.
+	//  7. Error Handling: The function provides clear error messages for request building, sending, and response decoding failures.
+	//
+	// Notes:
+	//   - The `content` field of each message can include text or image data for vision-based requests, using the `ClaudeContentVision` structure.
+	//   - The function uses the configured HTTP client (`c.config.httpClient`) to send the request.
+	//   - The `ClaudeResp` structure includes usage statistics (e.g., input and output tokens) and any applicable stop sequences.
+	//
+	// References:
+	//   - Official Claude API documentation: https://docs.anthropic.com/en/api/messages
 	ClaudeSendMessage(content *[]ClaudeMessageReq, maxToken int, with_custom_reqbody bool, req_body_custom *ClaudeReqBody) (*ClaudeResp, error)
+
+	// ClaudeGetFirstContentDataResp sends a prompt to the Claude API and returns the first content response.
+	//
+	// Notes: --
+	// This function is designed to send a message to the Claude API using the provided prompt,
+	// retrieve the full response, and extract the first content element (normally is the text type with content is the answer from model) from the response that can use for simplicity reason if you just need to use it like just the content, so you can only the return content straight away and not the full response structure of Claude Response.
+	//
+	// Parameters:
+	//   - prompt: A pointer to a slice of `ClaudeMessageReq` containing the messages to be sent to Claude.
+	//     Each message includes a `role` (e.g., "user", "system") and `content` (text or vision data).
+	//   - maxToken: An integer specifying the maximum number of tokens (words) allowed in the response.
+	//   - with_custom_reqbody: A boolean flag indicating whether a custom request body should be used.
+	//   - req_body_custom: A pointer to `ClaudeReqBody`, which is used if `with_custom_reqbody` is true.
+	//     If this value is nil when `with_custom_reqbody` is true, an error is returned.
+	//
+	// Returns:
+	//   - A pointer to `ClaudeContentResp`, representing the first content element returned by Claude in the response.
+	//   - An error if the request fails or if there is an issue extracting the content.
+	//
+	// Example usage:
+	//
+	//	// Define prompt messages
+	//	messages := []ClaudeMessageReq{
+	//	    {Role: "user", Content: "Summarize the latest news."},
+	//	}
+	//
+	//	// Send request and get the first content response
+	//	firstContent, err := claudeAPI.ClaudeGetFirstContentDataResp(&messages, 100)
+	//	if err != nil {
+	//	    log.Fatalf("Failed to get first content data: %v", err)
+	//	}
+	//	fmt.Println("First content data:", firstContent.Text)
+	//
+	// Function Details:
+	//
+	//  1. **ClaudeSendMessage Call**: This function internally calls `ClaudeSendMessage` to send the provided prompt to Claude.
+	//     It uses the default request body (without custom modifications) and a specified maximum token limit.
+	//  2. **Response Parsing**: Once the response is returned by `ClaudeSendMessage`, the function extracts the `Content` field from the response.
+	//  3. **First Content Extraction**: The function retrieves the first element from the `Content` array of `ClaudeResp`.
+	//     If successful, this content is returned as `ClaudeContentResp`.
+	//  4. **Error Handling**: If there is any error in sending the request or parsing the response, the error is returned directly.
+	//
+	// Notes:
+	//   - This function simplifies the process of retrieving the first content element from a Claude API response.
+	//   - The `Content` field in the Claude response is an array, and this function assumes at least one element is present.
+	//     If the array is empty, this would result in an index error.
+	//   - The `ClaudeContentResp` structure contains the `Type` and `Text` fields representing the response content.
+	//
+	// Considerations:
+	//   - You may need to check for errors in the returned content, such as if the array is empty or the first element is invalid.
+	//   - This function is designed to handle textual responses, though the Claude API can also support other content types (e.g., vision data) that still you can pass image data here on base64 encoding with structure that Claude needs.
+	//
+	// References:
+	//   - Official Claude API documentation: https://docs.anthropic.com/en/api/messages
 	ClaudeGetFirstContentDataResp(prompt *[]ClaudeMessageReq, maxToken int, with_custom_reqbody bool, req_body_custom *ClaudeReqBody) (*ClaudeContentResp, error)
 }
 
@@ -260,70 +379,6 @@ func ClaudeCreateOneContentImageVisionBase64(media_type string, encode_file_base
 	return content, nil
 }
 
-// ClaudeSendMessage sends a message to the Claude API and returns the response.
-//
-// This function constructs and sends a request to Claude, either using a custom request body or
-// building a default request body from the provided content and configuration.
-// It handles the response, including error handling, and returns the parsed response.
-//
-// Parameters:
-//   - content: A pointer to a slice of `ClaudeMessageReq` containing the messages to be sent to Claude.
-//     Each message includes a `role` (e.g., "user", "system") and `content` which can be text or vision data.
-//   - maxToken: An integer specifying the maximum number of tokens (words) allowed in the response (you can set to 0 if using custom_reqbody because the token itself you will provide inside the custom reqbody).
-//   - with_custom_reqbody: A boolean flag indicating whether a custom request body should be used.
-//   - req_body_custom: A pointer to `ClaudeReqBody`, which is used if `with_custom_reqbody` is true.
-//     If this value is nil when `with_custom_reqbody` is true, an error is returned.
-//
-// Returns:
-//   - A pointer to `ClaudeResp`, which contains the ID, content, model, and usage statistics of the response.
-//   - An error if the request fails at any stage.
-//
-// Example usage:
-//
-//	// Define message content
-//	messages := []ClaudeMessageReq{
-//	    {Role: "user", Content: "What is the weather today?"},
-//	}
-//
-//	// Send request with default body
-//	response, err := claudeAPI.ClaudeSendMessage(&messages, 100, false, nil)
-//	if err != nil {
-//	    log.Fatalf("Failed to send message to Claude: %v", err)
-//	}
-//	fmt.Println("Claude response:", response)
-//
-//	// Send request with custom body
-//	customReqBody := ClaudeReqBody{
-//	    Model:     "claude-v1",
-//	    MaxTokens: 150,
-//	    Message:   messages,
-//	}
-//	response, err := claudeAPI.ClaudeSendMessage(nil, 0, true, &customReqBody)
-//	if err != nil {
-//	    log.Fatalf("Failed to send message to Claude with custom body: %v", err)
-//	}
-//	fmt.Println("Claude custom response:", response)
-//
-// Function Details:
-//
-//  1. API Key Validation: The function checks if the `apiKey` is empty, and returns an error if it is missing.
-//  2. Custom Request Body: If `with_custom_reqbody` is true, the custom request body (`req_body_custom`) is used.
-//     If it's nil, an error is returned.
-//  3. Default Request Body: If `with_custom_reqbody` is false, the function creates a default `ClaudeReqBody` with
-//     the specified model, max tokens, messages, and a temperature of 1.0.
-//  4. Request Construction: The request is sent as a JSON payload to Claude's API endpoint using an HTTP POST method.
-//  5. Headers: The request includes the necessary headers, such as the API key, version, and content type.
-//  6. Response Handling: If the response status code is not 200 (OK), the function decodes the error response from Claude
-//     and returns a detailed error message. The successful response is decoded into a `ClaudeResp` struct.
-//  7. Error Handling: The function provides clear error messages for request building, sending, and response decoding failures.
-//
-// Notes:
-//   - The `content` field of each message can include text or image data for vision-based requests, using the `ClaudeContentVision` structure.
-//   - The function uses the configured HTTP client (`c.config.httpClient`) to send the request.
-//   - The `ClaudeResp` structure includes usage statistics (e.g., input and output tokens) and any applicable stop sequences.
-//
-// References:
-//   - Official Claude API documentation: https://docs.anthropic.com/en/api/messages
 func (c *claudeAPI) ClaudeSendMessage(content *[]ClaudeMessageReq, maxToken int, with_custom_reqbody bool, req_body_custom *ClaudeReqBody) (*ClaudeResp, error) {
 
 	var reqBody interface{}
@@ -402,59 +457,6 @@ func (c *claudeAPI) ClaudeSendMessage(content *[]ClaudeMessageReq, maxToken int,
 	return &result, nil
 }
 
-// ClaudeGetFirstContentDataResp sends a prompt to the Claude API and returns the first content response.
-//
-// Notes: --
-// This function is designed to send a message to the Claude API using the provided prompt,
-// retrieve the full response, and extract the first content element (normally is the text type with content is the answer from model) from the response that can use for simplicity reason if you just need to use it like just the content, so you can only the return content straight away and not the full response structure of Claude Response.
-//
-// Parameters:
-//   - prompt: A pointer to a slice of `ClaudeMessageReq` containing the messages to be sent to Claude.
-//     Each message includes a `role` (e.g., "user", "system") and `content` (text or vision data).
-//   - maxToken: An integer specifying the maximum number of tokens (words) allowed in the response.
-//   - with_custom_reqbody: A boolean flag indicating whether a custom request body should be used.
-//   - req_body_custom: A pointer to `ClaudeReqBody`, which is used if `with_custom_reqbody` is true.
-//     If this value is nil when `with_custom_reqbody` is true, an error is returned.
-//
-// Returns:
-//   - A pointer to `ClaudeContentResp`, representing the first content element returned by Claude in the response.
-//   - An error if the request fails or if there is an issue extracting the content.
-//
-// Example usage:
-//
-//	// Define prompt messages
-//	messages := []ClaudeMessageReq{
-//	    {Role: "user", Content: "Summarize the latest news."},
-//	}
-//
-//	// Send request and get the first content response
-//	firstContent, err := claudeAPI.ClaudeGetFirstContentDataResp(&messages, 100)
-//	if err != nil {
-//	    log.Fatalf("Failed to get first content data: %v", err)
-//	}
-//	fmt.Println("First content data:", firstContent.Text)
-//
-// Function Details:
-//
-//  1. **ClaudeSendMessage Call**: This function internally calls `ClaudeSendMessage` to send the provided prompt to Claude.
-//     It uses the default request body (without custom modifications) and a specified maximum token limit.
-//  2. **Response Parsing**: Once the response is returned by `ClaudeSendMessage`, the function extracts the `Content` field from the response.
-//  3. **First Content Extraction**: The function retrieves the first element from the `Content` array of `ClaudeResp`.
-//     If successful, this content is returned as `ClaudeContentResp`.
-//  4. **Error Handling**: If there is any error in sending the request or parsing the response, the error is returned directly.
-//
-// Notes:
-//   - This function simplifies the process of retrieving the first content element from a Claude API response.
-//   - The `Content` field in the Claude response is an array, and this function assumes at least one element is present.
-//     If the array is empty, this would result in an index error.
-//   - The `ClaudeContentResp` structure contains the `Type` and `Text` fields representing the response content.
-//
-// Considerations:
-//   - You may need to check for errors in the returned content, such as if the array is empty or the first element is invalid.
-//   - This function is designed to handle textual responses, though the Claude API can also support other content types (e.g., vision data) that still you can pass image data here on base64 encoding with structure that Claude needs.
-//
-// References:
-//   - Official Claude API documentation: https://docs.anthropic.com/en/api/messages
 func (c *claudeAPI) ClaudeGetFirstContentDataResp(prompt *[]ClaudeMessageReq, maxToken int, with_custom_reqbody bool, req_body_custom *ClaudeReqBody) (*ClaudeContentResp, error) {
 	// send request to Claude
 	claudeResp, err := c.ClaudeSendMessage(prompt, maxToken, with_custom_reqbody, req_body_custom)

@@ -2,11 +2,18 @@
 
 The Go LLM Wrapper provides a streamlined, pure Go interface for interacting with leading LLM APIs, including Claude (Anthropic) and OpenAI. This lightweight wrapper supports both text and vision capabilities, simplifying the integration of advanced language model functionality into Go applications.
 
+## Changelog
+### New Update Features
+- 🆕 Added OpenAI Text-to-Speech (TTS) support
+- 🆕 Added OpenAI DALL-E Image Generation support
+
 ## Features
 
 - 🚀 Pure Go implementation with zero external dependencies
 - 💬 Multiple Provider Support
 - 👁️ Comprehensive support for both text-based and vision capabilities
+- 🎙️ Text-to-Speech generation support 🆕
+- 🖼️ Image generation with DALL-E 🆕
 - ⚡ Minimal and efficient
 - 🛠️ Flexible configuration options for each provider
 
@@ -414,6 +421,55 @@ if content, err := gptClient.OpenAIGetFirstContentDataResp(&gptMessageVisionMult
 } else {
     fmt.Println("gpt response content: ")
     fmt.Println(content)
+}
+
+```
+
+### Image Generation (OpenAI DALL-E)
+```go
+// NEW: Image Generation API - Generate image with your prompt
+
+size := "1792x1024" // choosing size for image
+
+// there are 2 response format for DALL-E image generator response format b64_json and url
+response_b64 := "b64_json"
+// response_url := "url"
+
+// DALL-E image generator message body
+dalleMessage := openai.OAReqImageGeneratorDallE{
+    Model:          "dall-e-3",
+    Prompt:         "A painting of a flower vase in the style of Picasso",
+    Size:           &size,
+    ResponseFormat: &response_b64,
+}
+
+if dalleRes, err := gptClient.OpenAICreateImageDallE(&dalleMessage); err != nil {
+    fmt.Println("error dalle req: " + err.Error())
+} else {
+    fmt.Println("\ndalle response: ")
+    fmt.Println(dalleRes) // response data
+}
+
+```
+
+### Text To Speech (OpenAI TTS)
+```go
+// NEW: Text To Speech API - Converts text to audio
+
+// output data format for TTS is just base64 encode audio data
+text := "Hello, my name is Momokii. I am a virtual assistant. I can help you with anything you need. How can I help you today?"
+ttsReBody := openai.OAReqTextToSpeech{
+    Model:          "tts-1",
+    Voice:          "alloy",
+    ResponseFormat: "mp3",
+    Input:          text,
+}
+
+if ttsData, err := gptClient.OpenAITextToSpeech(&ttsReBody); err != nil {
+    fmt.Println("error tts req: " + err.Error())
+} else {
+    fmt.Println("\ntts response: ")
+    fmt.Println(ttsData)
 }
 
 ```
