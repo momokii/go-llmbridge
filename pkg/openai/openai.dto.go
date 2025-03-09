@@ -117,3 +117,83 @@ type OATextToSpeechResp struct {
 	FormatAudio string `json:"format_audio"` // will be like ".mp3"
 	B64JSON     string `json:"b64_json"`
 }
+
+// ----------------- STT SPEECH TO TEXT ------ Reference for stt Request Body
+// 	   - OpenAI Docs: https://platform.openai.com/docs/api-reference/audio/createTranscription
+
+// transcription  -> transcribe audio to the input language
+// will using inside the function
+type OATranscriptionReq struct {
+	File                   interface{} `json:"file" form:"file"`   // required
+	Model                  string      `json:"model" form:"model"` // required
+	Language               string      // optional, The language of the input audio. Supplying the input language in ISO-639-1 (e.g. en) format will improve accuracy and latency.
+	Prompt                 string      `json:"prompt" form:"prompt"`                   // optional, An optional text to guide the model's style or continue a previous audio segment
+	ResponseFormat         string      `json:"response_format" form:"response_format"` // default to json, The format of the response. Either json or text, srt, verbose_json, or vtt.
+	Temperature            float64     `json:"temperature" form:"temperature"`         // The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit.
+	TimestampGranularities []string    `json:"timestamp_granularities"`                // optional, The timestamp granularities to populate for this transcription. response_format must be set verbose_json to use timestamp granularities. Either or both of these options are supported: word, or segment. Note: There is no additional latency for segment timestamps, but generating word timestamps incurs additional latency.
+}
+
+// req parameter using different struct
+type OATranscriptionDefaultReq struct {
+	File        interface{} `json:"file" form:"file"`               // required
+	Filename    string      `json:"filename" form:"filename"`       // optional, must be provided if File using io.reader as input
+	Prompt      string      `json:"prompt" form:"prompt"`           // optional, An optional text to guide the model's style or continue a previous audio segment
+	Language    string      `json:"language" form:"language"`       // optional, The language of the input audio. Supplying the input language in ISO-639-1 (e.g. en) format will improve accuracy and latency.
+	Temperature float64     `json:"temperature" form:"temperature"` // The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit.
+}
+
+type OASTTError struct {
+	Message string `json:"message"`
+	Type    string `json:"type"`
+	Param   string `json:"param"`
+	Code    int    `json:"code"`
+}
+
+type OATranscriptionDefaultResp struct {
+	Text  string     `json:"text"`
+	Error OASTTError `json:"error"`
+}
+
+type wordTimestampResp struct {
+	Word  string  `json:"word"`
+	Start float64 `json:"start"`
+	End   float64 `json:"end"`
+}
+
+type OATranscriptionWordTimestampResp struct {
+	Task     string              `json:"task"`
+	Language string              `json:"language"`
+	Duration float64             `json:"duration"`
+	Text     string              `json:"text"`
+	Words    []wordTimestampResp `json:"words"`
+	Error    OASTTError          `json:"error"`
+}
+
+type segmentResp struct {
+	Id               int     `json:"id"`
+	Seek             int     `json:"seek"`
+	Start            float64 `json:"start"`
+	End              float64 `json:"end"`
+	Text             string  `json:"text"`
+	Tokens           []int   `json:"tokens"`
+	Temperature      float64 `json:"temperature"`
+	AvgLogprob       float64 `json:"avg_logprob"`
+	CompressionRatio float64 `json:"compression_ratio"`
+	NoSpeechProb     float64 `json:"no_speech_prob"`
+}
+
+type OATranscriptionSegmentResp struct {
+	Task     string        `json:"task"`
+	Language string        `json:"language"`
+	Duration float64       `json:"duration"`
+	Text     string        `json:"text"`
+	Segments []segmentResp `json:"segments"`
+	Error    OASTTError    `json:"error"`
+}
+
+type OATranslationDefaultReq struct {
+	File        interface{} `json:"file" form:"file"`               // required
+	Filename    string      `json:"filename" form:"filename"`       // optional, must be provided if File using io.reader as input
+	Prompt      string      `json:"prompt" form:"prompt"`           // optional, An optional text to guide the model's style or continue a previous audio segment
+	Temperature float64     `json:"temperature" form:"temperature"` // The sampling temperature, between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic. If set to 0, the model will use log probability to automatically increase the temperature until certain thresholds are hit.
+}
