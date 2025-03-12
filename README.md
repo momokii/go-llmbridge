@@ -4,16 +4,16 @@ The Go LLM Wrapper provides a streamlined, pure Go interface for interacting wit
 
 ## Changelog
 ### New Update Features
-- 🆕 Added OpenAI Text-to-Speech (TTS) support
-- 🆕 Added OpenAI DALL-E Image Generation support
+- 🆕 Added OpenAI Speech-To-Text (STT) support
 
 ## Features
 
 - 🚀 Pure Go implementation with zero external dependencies
 - 💬 Multiple Provider Support
 - 👁️ Comprehensive support for both text-based and vision capabilities
-- 🎙️ Text-to-Speech generation support 🆕
-- 🖼️ Image generation with DALL-E 🆕
+- 🎙️ Text-to-Speech generation support
+- 🎙️ Speech-to-Text support 🆕
+- 🖼️ Image generation with DALL-E
 - ⚡ Minimal and efficient
 - 🛠️ Flexible configuration options for each provider
 
@@ -427,8 +427,6 @@ if content, err := gptClient.OpenAIGetFirstContentDataResp(&gptMessageVisionMult
 
 ### Image Generation (OpenAI DALL-E)
 ```go
-// NEW: Image Generation API - Generate image with your prompt
-
 size := "1792x1024" // choosing size for image
 
 // there are 2 response format for DALL-E image generator response format b64_json and url
@@ -454,8 +452,6 @@ if dalleRes, err := gptClient.OpenAICreateImageDallE(&dalleMessage); err != nil 
 
 ### Text To Speech (OpenAI TTS)
 ```go
-// NEW: Text To Speech API - Converts text to audio
-
 // output data format for TTS is just base64 encode audio data
 text := "Hello, my name is Momokii. I am a virtual assistant. I can help you with anything you need. How can I help you today?"
 ttsReBody := openai.OAReqTextToSpeech{
@@ -471,6 +467,191 @@ if ttsData, err := gptClient.OpenAITextToSpeech(&ttsReBody); err != nil {
     fmt.Println("\ntts response: ")
     fmt.Println(ttsData)
 }
+
+```
+
+### Speech To Text (OpenAI Whisper)
+
+The library supports OpenAI's Whisper model for speech-to-text conversion with multiple output formats and capabilities. These functions accept audio in various formats (mp3, mp4, mpeg, mpga, m4a, wav, webm, flac, ogg) and offer different levels of detail in the transcription output.
+
+Documentation for speech-to-text for OpenAI:
+- [OpenAI Whisper API (Transcription)](https://platform.openai.com/docs/api-reference/audio/createTranscription)
+- [OpenAI Whisper API (Translation)](https://platform.openai.com/docs/api-reference/audio/createTranslation)
+
+#### Transcription Example Usage
+Convert audio to text
+
+```go
+// NEW: Text To Speech API - Converts text to audio
+
+// Data load example
+
+// filepath example
+req := &OATranslationDefaultReq{
+    File:     "/path/to/audio.mp3",
+}
+
+// file open/ io.reader as input
+file, err := os.Open("/path/to/audio.mp3")
+if err != nil {
+    log.Fatalf("Failed to open file: %v", err)
+}
+defer file.Close()
+
+req := &OATranscriptionDefaultReq{
+    File:     file,
+    Filename: "audio.mp3", // Required when using io.Reader
+}
+
+```
+For transcription requests, there will be three different functions, and the main difference lies in the response structure that the user will receive.
+
+##### Default Request
+```go
+// NEW: Text To Speech API - Converts text to audio
+
+// Transcription - Default Request
+resp, err := gptClient.OpenAISpeechToTextDefault(&req)
+if err != nil {
+    log.Println("error stt req: " + err.Error())
+} else {
+    log.Println("\nstt response: ")
+    log.Println(resp)
+}
+
+// example transcript response for default transcription
+// structure of json/ struct will be similar like openai docs structure
+// {
+//   "text": "Imagine the wildest idea that you've ever had, and you're curious about how it might scale to something that's a 100, a 1,000 times bigger. This is a place where you can get to do that."
+// }
+
+
+```
+
+##### Word Timestamps Request
+```go
+// NEW: Text To Speech API - Converts text to audio
+
+// Transcription - Word timestamps Request
+resp, err := gptClient.OpenAISpeechToTextWordTimestamps(&req)
+if err != nil {
+    log.Println("error stt req: " + err.Error())
+} else {
+    log.Println("\nstt WORD TIMESTAMPS response: ")
+    log.Println(resp)
+}
+
+// example transcript response for word timestamps transcription
+// structure of json/ struct will be similar like openai docs structure
+// {
+//   "task": "transcribe",
+//   "language": "english",
+//   "duration": 8.470000267028809,
+//   "text": "The beach was a popular spot on a hot summer day. People were swimming in the ocean, building sandcastles, and playing beach volleyball.",
+//   "words": [
+//     {
+//       "word": "The",
+//       "start": 0.0,
+//       "end": 0.23999999463558197
+//     },
+//     ...
+//     {
+//       "word": "volleyball",
+//       "start": 7.400000095367432,
+//       "end": 7.900000095367432
+//     }
+//   ]
+// }
+
+
+```
+
+##### Segments Timestamps Request
+```go
+// NEW: Text To Speech API - Converts text to audio
+
+// Transcription - Segments Timestamps Request
+resp, err := gptClient.OpenAISpeechToTextSegmentTimestamps(&req)
+if err != nil {
+    log.Println("error stt req: " + err.Error())
+} else {
+    log.Println("\nstt SEGMENTS TIMESTAMPS response: ")
+    log.Println(resp)
+}
+
+// example transcript response for segments timestamps transcription
+// structure of json/ struct will be similar like openai docs structure
+// {
+//   "task": "transcribe",
+//   "language": "english",
+//   "duration": 8.470000267028809,
+//   "text": "The beach was a popular spot on a hot summer day. People were swimming in the ocean, building sandcastles, and playing beach volleyball.",
+//   "segments": [
+//     {
+//       "id": 0,
+//       "seek": 0,
+//       "start": 0.0,
+//       "end": 3.319999933242798,
+//       "text": " The beach was a popular spot on a hot summer day.",
+//       "tokens": [
+//         50364, 440, 7534, 390, 257, 3743, 4008, 322, 257, 2368, 4266, 786, 13, 50530
+//       ],
+//       "temperature": 0.0,
+//       "avg_logprob": -0.2860786020755768,
+//       "compression_ratio": 1.2363636493682861,
+//       "no_speech_prob": 0.00985979475080967
+//     },
+//     ...
+//   ]
+// }
+
+
+```
+
+
+#### Translation Example Usage
+Convert audio to text and translate to to english
+```go
+// NEW: Speech to Text API (Translation) - Convert audio to text and translate to to english
+
+// input data can use with format like form, local filepath, or io.reader format
+
+// filepath example
+req := &OATranslationDefaultReq{
+    File:     "/path/to/french_audio.mp3",
+}
+
+// file open/ io.reader as input
+file, err := os.Open("/path/to/french_audio.mp3")
+if err != nil {
+    log.Fatalf("Failed to open file: %v", err)
+}
+defer file.Close()
+
+req := &OATranscriptionDefaultReq{
+    File:     file,
+    Filename: "french_audio.mp3", // Required when using io.Reader
+    Language: "en",
+}
+
+if ttsData, err := gptClient.OpenAITextToSpeech(&ttsReBody); err != nil {
+    fmt.Println("error tts req: " + err.Error())
+} else {
+    fmt.Println("\ntts response: ")
+    fmt.Println(ttsData)
+}
+
+resp, err := openAIClient.OpenAISpeechToTextTranslation(req)
+if err != nil {
+    log.Fatalf("Audio translation failed: %v", err)
+}
+fmt.Println("English Translation:", resp.Text)
+
+// example real transcript from german
+// Heute ist Donnerstag. Am Nachmittag gehe ich in den Supermarkt, um einzukaufen. Ich brauche Milch, fünf Eier, Brot und Obst. Im Supermarkt finde ich alles, was ich brauche. Zuerst gehe ich zur Obstabteilung und nehme frische Orangen. Dann hole ich Milch, Eier und Brot. An der Kasse bezahle ich oft mit meiner Kreditkarte, manchmal bar. Danach gehe ich nach Hause. Einkaufen macht Spaß.
+
+// will be translate to
+// Today is Thursday. In the afternoon I go to the supermarket to buy groceries. I need milk, five eggs, bread and fruit. In the supermarket I find everything I need. First I go to the fruit section and take fresh oranges. Then I get milk, eggs and bread. At the checkout I often pay with my credit card, sometimes cash. Then I go home. Shopping is fun!
 
 ```
 

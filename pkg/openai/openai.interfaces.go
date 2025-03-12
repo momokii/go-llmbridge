@@ -214,12 +214,292 @@ type OpenAI interface {
 	//   - TTS OpenAI: https://platform.openai.com/docs/api-reference/audio/createSpeech
 	OpenAITextToSpeech(req_body *OAReqTextToSpeech) (*OATextToSpeechResp, error)
 
+	// OpenAISpeechToTextDefault transcribes audio files to text using OpenAI's Whisper model.
+	//
+	// This function accepts audio in various formats (mp3, mp4, mpeg, mpga, m4a, wav, webm, flac, ogg)
+	// and converts it to text. It supports different input methods including file paths, multipart files,
+	// and io.Reader objects.
+	//
+	// Parameters:
+	//   - req_body (*OATranscriptionDefaultReq): A pointer to the request structure containing:
+	//     - File (interface{}): Required. The audio file to transcribe. Can be a *multipart.FileHeader,
+	//       string (file path), or io.Reader.
+	//     - Filename (string): Required when File is an io.Reader, otherwise optional.
+	//     - Prompt (string): Optional. Text to guide the model's style or continue a previous audio segment.
+	//     - Language (string): Optional. The ISO-639-1 language code of the input audio (e.g., "en").
+	//       Providing this improves accuracy and latency.
+	//     - Temperature (float64): Optional. Value between 0 and 1 controlling randomness in the output.
+	//       Higher values (e.g., 0.8) make output more random, lower values (e.g., 0.2) more deterministic.
+	//
+	// Returns:
+	//   - (*OATranscriptionDefaultResp, error): On success, returns a pointer to a response struct containing:
+	//     - Text (string): The transcribed text.
+	//     If an error occurs during processing or API communication, returns an error.
+	//
+	// Error conditions:
+	//   - Returns an error if the input file is missing or has an invalid format.
+	//   - Returns an error if the temperature is outside the valid range (0-1).
+	//   - Returns an error if an io.Reader is provided without a filename.
+	//   - Returns an error if the API call fails or the response is invalid.
+	//
+	// Example usage:
+	//
+	//	// Using a file path
+	//	req := &OATranscriptionDefaultReq{
+	//	    File:     "/path/to/audio.mp3",
+	//	    Language: "en",
+	//	}
+	//
+	//	// Using a multipart file from an HTTP request
+	//	fileHeader, _, _ := r.FormFile("audioFile")
+	//	req := &OATranscriptionDefaultReq{
+	//	    File:     fileHeader,
+	//	    Language: "en",
+	//	}
+	//
+	//	// Using an io.Reader with os.Open()
+	//	file, err := os.Open("/path/to/audio.mp3")
+	//	if err != nil {
+	//		log.Fatalf("Failed to open file: %v", err)
+	//	}
+	//	defer file.Close()
+	//
+	//	req := &OATranscriptionDefaultReq{
+	//		File:     file,
+	//		Filename: "audio.mp3", // Required when using io.Reader
+	//		Language: "en",
+	//	}
+	//
+	//	resp, err := openAIClient.OpenAISpeechToTextDefault(req)
+	//	if err != nil {
+	//	    log.Fatalf("Speech to text transcription failed: %v", err)
+	//	}
+	//	fmt.Println("Transcription:", resp.Text)
+	//
+	//  References:
+	//   - OpenAI Whisper API: https://platform.openai.com/docs/api-reference/audio/createTranscription
 	OpenAISpeechToTextDefault(req_body *OATranscriptionDefaultReq) (*OATranscriptionDefaultResp, error)
 
+	// OpenAISpeechToTextWordTimestamps transcribes audio files to text with word-level timestamps.
+	//
+	// This function is similar to OpenAISpeechToTextDefault but includes detailed timing information
+	// for each word in the transcription. It's useful for applications that need precise word timing,
+	// such as video subtitling or audio analysis.
+	//
+	// Parameters:
+	//   - req_body (*OATranscriptionDefaultReq): A pointer to the request structure containing:
+	//     - File (interface{}): Required. The audio file to transcribe. Can be a *multipart.FileHeader,
+	//       string (file path), or io.Reader.
+	//     - Filename (string): Required when File is an io.Reader, otherwise optional.
+	//     - Prompt (string): Optional. Text to guide the model's style or continue a previous audio segment.
+	//     - Language (string): Optional. The ISO-639-1 language code of the input audio (e.g., "en").
+	//     - Temperature (float64): Optional. Value between 0 and 1 controlling randomness in the output.
+	//
+	// Returns:
+	//   - (*OATranscriptionWordTimestampResp, error): On success, returns a pointer to a response struct containing:
+	//     - Task (string): The type of task performed ("transcription").
+	//     - Language (string): The detected or specified language of the audio.
+	//     - Duration (float64): The duration of the audio in seconds.
+	//     - Text (string): The complete transcribed text.
+	//     - Words ([]wordTimestampResp): An array of word objects, each containing:
+	//       - Word (string): The transcribed word.
+	//       - Start (float64): The start time of the word in seconds.
+	//       - End (float64): The end time of the word in seconds.
+	//     If an error occurs during processing or API communication, returns an error.
+	//
+	// Error conditions:
+	//   - Returns an error if the input file is missing or has an invalid format.
+	//   - Returns an error if the temperature is outside the valid range (0-1).
+	//   - Returns an error if an io.Reader is provided without a filename.
+	//   - Returns an error if the API call fails or the response is invalid.
+	//
+	// Example usage:
+	//
+	// 	// Using a file path
+	// 	req := &OATranscriptionDefaultReq{
+	// 	    File:     "/path/to/audio.mp3",
+	// 	    Language: "en",
+	// 	}
+	//
+	// 	// Using a multipart file from an HTTP request
+	// 	fileHeader, _, _ := r.FormFile("audioFile")
+	// 	req := &OATranscriptionDefaultReq{
+	// 	    File:     fileHeader,
+	// 	    Language: "en",
+	// 	}
+	//
+	//	// Using an io.Reader with os.Open()
+	//	file, err := os.Open("/path/to/audio.mp3")
+	//	if err != nil {
+	//		log.Fatalf("Failed to open file: %v", err)
+	//	}
+	//	defer file.Close()
+	//
+	//	req := &OATranscriptionDefaultReq{
+	//		File:     file,
+	//		Filename: "audio.mp3", // Required when using io.Reader
+	//		Language: "en",
+	//	}
+	//
+	// 	resp, err := openAIClient.OpenAISpeechToTextWordTimestamps(req)
+	// 	if err != nil {
+	// 	    log.Fatalf("Speech to text with word timestamps failed: %v", err)
+	// 	}
+	//
+	// 	fmt.Println("Transcription:", resp.Text)
+	// 	for _, word := range resp.Words {
+	// 	    fmt.Printf("Word: %s, Start: %.2fs, End: %.2fs\n", word.Word, word.Start, word.End)
+	// 	}
+	//
+	// References:
+	//   - OpenAI Whisper API: https://platform.openai.com/docs/api-reference/audio/createTranscription
 	OpenAISpeechToTextWordTimestamps(req_body *OATranscriptionDefaultReq) (*OATranscriptionWordTimestampResp, error)
 
+	// OpenAISpeechToTextSegmentTimestamps transcribes audio files to text with segment-level timestamps.
+	//
+	// This function provides transcription with segment-level timestamps, where a segment represents
+	// a continuous piece of speech. This is useful for applications that need paragraph or sentence-level
+	// timing information rather than individual words.
+	//
+	// Parameters:
+	//   - req_body (*OATranscriptionDefaultReq): A pointer to the request structure containing:
+	//     - File (interface{}): Required. The audio file to transcribe. Can be a *multipart.FileHeader,
+	//       string (file path), or io.Reader.
+	//     - Filename (string): Required when File is an io.Reader, otherwise optional.
+	//     - Prompt (string): Optional. Text to guide the model's style or continue a previous audio segment.
+	//     - Language (string): Optional. The ISO-639-1 language code of the input audio.
+	//     - Temperature (float64): Optional. Value between 0 and 1 controlling randomness in the output.
+	//
+	// Returns:
+	//   - (*OATranscriptionSegmentResp, error): On success, returns a pointer to a response struct containing:
+	//     - Task (string): The type of task performed ("transcription").
+	//     - Language (string): The detected or specified language of the audio.
+	//     - Duration (float64): The duration of the audio in seconds.
+	//     - Text (string): The complete transcribed text.
+	//     - Segments ([]segmentResp): An array of segment objects, each containing:
+	//       - Id (int): Segment identifier.
+	//       - Seek (int): Position in the audio file.
+	//       - Start (float64): The start time of the segment in seconds.
+	//       - End (float64): The end time of the segment in seconds.
+	//       - Text (string): The transcribed text for this segment.
+	//       - Tokens ([]int): Token IDs for the segment text.
+	//       - Temperature (float64): The temperature used for this segment.
+	//       - AvgLogprob (float64): Average log probability of the segment.
+	//       - CompressionRatio (float64): Compression ratio for the segment.
+	//       - NoSpeechProb (float64): Probability that the segment contains no speech.
+	//     If an error occurs during processing or API communication, returns an error.
+	//
+	// Error conditions:
+	//   - Returns an error if the input file is missing or has an invalid format.
+	//   - Returns an error if the temperature is outside the valid range (0-1).
+	//   - Returns an error if an io.Reader is provided without a filename.
+	//   - Returns an error if the API call fails or the response is invalid.
+	//
+	// Example usage:
+	//
+	// 	// Using a file path
+	// 	req := &OATranscriptionDefaultReq{
+	// 	    File:     "/path/to/audio.mp3",
+	// 	    Language: "en",
+	// 	}
+	//
+	// 	// Using a multipart file from an HTTP request
+	// 	fileHeader, _, _ := r.FormFile("audioFile")
+	// 	req := &OATranscriptionDefaultReq{
+	// 	    File:     fileHeader,
+	// 	    Language: "en",
+	// 	}
+	//
+	//	// Using an io.Reader with os.Open()
+	//	file, err := os.Open("/path/to/audio.mp3")
+	//	if err != nil {
+	//		log.Fatalf("Failed to open file: %v", err)
+	//	}
+	//	defer file.Close()
+	//
+	//	req := &OATranscriptionDefaultReq{
+	//		File:     file,
+	//		Filename: "audio.mp3", // Required when using io.Reader
+	//		Language: "en",
+	//	}
+	//
+	//	resp, err := openAIClient.OpenAISpeechToTextSegmentTimestamps(req)
+	//	if err != nil {
+	//	    log.Fatalf("Speech to text with segment timestamps failed: %v", err)
+	//	}
+	//
+	//	fmt.Println("Transcription:", resp.Text)
+	//	for _, segment := range resp.Segments {
+	//	    fmt.Printf("Segment: %s\nStart: %.2fs, End: %.2fs\n\n", segment.Text, segment.Start, segment.End)
+	//	}
+	//
+	// References:
+	//   - OpenAI Whisper API: https://platform.openai.com/docs/api-reference/audio/createTranscription
 	OpenAISpeechToTextSegmentTimestamps(req_body *OATranscriptionDefaultReq) (*OATranscriptionSegmentResp, error)
 
+	// OpenAISpeechToTextTranslation translates audio files to English text.
+	//
+	// Unlike the transcription functions that maintain the original language, this function
+	// specifically translates the audio content to English text, regardless of the source language.
+	// This is useful for applications requiring language translation from audio sources.
+	//
+	// Parameters:
+	//   - req_body (*OATranslationDefaultReq): A pointer to the request structure containing:
+	//     - File (interface{}): Required. The audio file to translate. Can be a *multipart.FileHeader,
+	//       string (file path), or io.Reader.
+	//     - Filename (string): Required when File is an io.Reader, otherwise optional.
+	//     - Prompt (string): Optional. Text to guide the model's style or continue a previous audio segment.
+	//     - Temperature (float64): Optional. Value between 0 and 1 controlling randomness in the output.
+	//
+	// Returns:
+	//   - (*OATranscriptionDefaultResp, error): On success, returns a pointer to a response struct containing:
+	//     - Text (string): The translated English text.
+	//     If an error occurs during processing or API communication, returns an error.
+	//
+	// Error conditions:
+	//   - Returns an error if the input file is missing or has an invalid format.
+	//   - Returns an error if the temperature is outside the valid range (0-1).
+	//   - Returns an error if an io.Reader is provided without a filename.
+	//   - Returns an error if the API call fails or the response is invalid.
+	//
+	// Example usage:
+	//
+	//	// Translate a French audio file to English text
+	//
+	//	// Using a file path
+	//	req := &OATranslationDefaultReq{
+	//	    File:     "/path/to/french_audio.mp3",
+	//	    Prompt:   "This is a business meeting discussion",
+	//	}
+	//
+	// 	// Using a multipart file from an HTTP request
+	// 	fileHeader, _, _ := r.FormFile("audioFile")
+	// 	req := &OATranscriptionDefaultReq{
+	// 	    File:     fileHeader,
+	// 	    Language: "en",
+	// 	}
+	//
+	//	// Using an io.Reader with os.Open()
+	//	file, err := os.Open("/path/to/french_audio.mp3")
+	//	if err != nil {
+	//		log.Fatalf("Failed to open file: %v", err)
+	//	}
+	//	defer file.Close()
+	//
+	//	req := &OATranscriptionDefaultReq{
+	//		File:     file,
+	//		Filename: "french_audio.mp3", // Required when using io.Reader
+	//		Language: "en",
+	//	}
+	//
+	//	resp, err := openAIClient.OpenAISpeechToTextTranslation(req)
+	//	if err != nil {
+	//	    log.Fatalf("Audio translation failed: %v", err)
+	//	}
+	//	fmt.Println("English Translation:", resp.Text)
+	//
+	// References:
+	//   - OpenAI Whisper API: https://platform.openai.com/docs/api-reference/audio/createTranslation
 	OpenAISpeechToTextTranslation(req_body *OATranslationDefaultReq) (*OATranscriptionDefaultResp, error)
 }
 
